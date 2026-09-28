@@ -257,20 +257,20 @@ export default function Panel() {
           <div className="w-full max-w-sm rounded-card bg-white p-6 text-center shadow-soft">
             {claveNueva ? (
               <>
-                <p className="text-sm text-lumy-tintaSuave">Contrase\u00f1a temporal de</p>
+                <p className="text-sm text-lumy-tintaSuave">Contraseña temporal de</p>
                 <b className="mb-3 block font-display text-lg">{claveNueva.codigo}</b>
                 <p className="mb-3 select-all rounded-2xl bg-lumy-nube py-4 font-display text-3xl font-bold tracking-wider">
                   {claveNueva.clave}
                 </p>
                 <p className="mb-5 text-xs leading-relaxed text-lumy-tintaSuave">
-                  An\u00f3tala ahora: este aviso no vuelve a mostrarse. Al ingresar con ella, la
-                  aplicaci\u00f3n le va a pedir que cree una propia.
+                  Anótala ahora: este aviso no vuelve a mostrarse. Al ingresar con ella, la
+                  aplicación le va a pedir que cree una propia.
                 </p>
                 <button
                   onClick={() => setClaveNueva(null)}
                   className="w-full rounded-pill bg-lumy-gradient py-3 font-semibold text-white"
                 >
-                  Ya la anot\u00e9
+                  Ya la anoté
                 </button>
               </>
             ) : (
