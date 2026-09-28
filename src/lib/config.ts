@@ -25,15 +25,24 @@ export type Emocion = {
   alerta: boolean;
 };
 
-/** I1: las siete emociones que pidieron las investigadoras. */
+/**
+ * I1 + E1: las siete emociones iniciales mas ansiedad y estres, agregadas el
+ * 28/09/2026 para que el registro diario mida lo mismo que el DASS-21.
+ *
+ * "alerta: true" significa que al elegirla aparece la pantalla de
+ * acompanamiento de Lumy. Cambiar ese booleano es todo lo que hace falta
+ * si se quiere ajustar cuales la disparan.
+ */
 export const EMOCIONES: Emocion[] = [
-  { id: "alegria", nombre: "Alegría", face: "😊", bg: "bg-emo-feliz", valencia: 5, alerta: false },
-  { id: "sorpresa", nombre: "Sorpresa", face: "😮", bg: "bg-emo-tranquilo", valencia: 4, alerta: false },
-  { id: "asco", nombre: "Asco", face: "🤢", bg: "bg-emo-neutral", valencia: 2.5, alerta: false },
-  { id: "desprecio", nombre: "Desprecio", face: "😒", bg: "bg-emo-ansioso", valencia: 2.5, alerta: false },
-  { id: "ira", nombre: "Ira", face: "😠", bg: "bg-emo-estresado", valencia: 1.5, alerta: true },
-  { id: "miedo", nombre: "Miedo", face: "😨", bg: "bg-emo-triste", valencia: 1.5, alerta: true },
-  { id: "tristeza", nombre: "Tristeza", face: "😢", bg: "bg-emo-triste", valencia: 1.5, alerta: true },
+  { id: "alegria", nombre: "Alegr\u00eda", face: "\u{1F60A}", bg: "bg-emo-feliz", valencia: 5, alerta: false },
+  { id: "sorpresa", nombre: "Sorpresa", face: "\u{1F62E}", bg: "bg-emo-tranquilo", valencia: 4, alerta: false },
+  { id: "asco", nombre: "Asco", face: "\u{1F922}", bg: "bg-emo-neutral", valencia: 2.5, alerta: false },
+  { id: "desprecio", nombre: "Desprecio", face: "\u{1F612}", bg: "bg-emo-neutral", valencia: 2.5, alerta: false },
+  { id: "ansiedad", nombre: "Ansiedad", face: "\u{1F630}", bg: "bg-emo-ansioso", valencia: 2, alerta: true },
+  { id: "estres", nombre: "Estr\u00e9s", face: "\u{1F62B}", bg: "bg-emo-estresado", valencia: 2, alerta: true },
+  { id: "ira", nombre: "Ira", face: "\u{1F620}", bg: "bg-emo-estresado", valencia: 1.5, alerta: true },
+  { id: "miedo", nombre: "Miedo", face: "\u{1F628}", bg: "bg-emo-triste", valencia: 1.5, alerta: true },
+  { id: "tristeza", nombre: "Tristeza", face: "\u{1F622}", bg: "bg-emo-triste", valencia: 1.5, alerta: true },
 ];
 
 /** L6: tabla de insignias tal como la definieron. */
@@ -112,8 +121,11 @@ export const MODULOS: Record<TipoModulo, { nombre: string; ico: string; intro: s
 
 export type Pregunta = { q: string; o: string[]; c: number };
 
+/** C2: cada cuestionario tiene 5 preguntas y cada una vale 4 puntos (20 en total). */
+export const PUNTOS_POR_PREGUNTA = 4;
+
 /**
- * K7: 5 preguntas por quiz, puntaje de 0 a 5, retroalimentación inmediata.
+ * K7 y C2: 5 preguntas por quiz, 4 puntos cada una, retroalimentación inmediata.
  * PENDIENTE: estas preguntas son de ejemplo. Las definitivas las entregan
  * las investigadoras y pasan por juicio de expertos.
  */
@@ -158,14 +170,33 @@ export const PREGUNTAS_CIERRE = [
 
 /** Mensajes de Lumy según la emoción registrada (I6). */
 export const MENSAJES_LUMY: Record<string, string> = {
+  ansiedad:
+    "Noto que hoy la cabeza no te da tregua. No tienes que resolverlo todo ahora mismo. Respiremos un momento juntas.",
+  estres:
+    "Parece que hoy fue mucho. Estar cansada de sostener tanto no es debilidad. Paremos un ratito.",
   ira: "Veo que hoy hay algo que te molesta mucho. Enojarse no está mal, es una señal. ¿Le damos un poco de aire antes de seguir?",
   miedo: "Veo que hoy podrías necesitar una pausa. Recuerda que no tienes que ser fuerte todo el tiempo. ¿Qué tal si respiramos juntas?",
   tristeza: "Gracias por contármelo. La tristeza también merece espacio. Quédate aquí un momento conmigo.",
 };
 
 /** Expresion del avatar en la pantalla de acompanamiento, segun la emocion. */
-export const EXPRESION_APOYO: Record<string, "preocupada" | "apenada" | "triste"> = {
+export const EXPRESION_APOYO: Record<string, "preocupada" | "apenada" | "triste" | "cansada" | "confundida"> = {
+  ansiedad: "confundida",
+  estres: "cansada",
   ira: "preocupada",
   miedo: "preocupada",
   tristeza: "apenada",
 };
+
+/**
+ * Plazo de respuesta comprometido para cada nivel de prioridad, en horas.
+ * Prioridad 4: el mismo dia. Prioridad 3: dentro de 24 horas.
+ * El panel marca en rojo las alertas que ya pasaron su plazo.
+ */
+export const PLAZO_ALERTA_HORAS: Record<number, number> = { 4: 12, 3: 24 };
+
+export function alertaVencida(prioridad: number, recibidoEn: string): boolean {
+  const horas = PLAZO_ALERTA_HORAS[prioridad];
+  if (!horas) return false;
+  return Date.now() - new Date(recibidoEn).getTime() > horas * 3600 * 1000;
+}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DIAS_TOTALES, PUNTOS_DIA } from "@/lib/config";
+import { DIAS_TOTALES, PLAZO_ALERTA_HORAS, PUNTOS_DIA, alertaVencida } from "@/lib/config";
 import { Estado, useStore } from "@/lib/store";
 
 /** Participantes de demostración, para que las pantallas no se vean vacías. */
@@ -219,6 +219,19 @@ export default function Panel() {
                   <span className="text-xs text-lumy-tintaSuave">
                     día {a.dia} · {a.categoria}
                   </span>
+                  {a.estado === "pendiente" && PLAZO_ALERTA_HORAS[a.prioridad] ? (
+                    <span
+                      className={`rounded-pill px-2.5 py-0.5 text-xs font-semibold ${
+                        alertaVencida(a.prioridad, a.fecha)
+                          ? "bg-red-600 text-white"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {alertaVencida(a.prioridad, a.fecha)
+                        ? "Fuera de plazo"
+                        : `Plazo ${PLAZO_ALERTA_HORAS[a.prioridad]} h`}
+                    </span>
+                  ) : null}
                   <span className="ml-auto rounded-pill bg-slate-100 px-2.5 py-0.5 text-xs capitalize">
                     {a.estado}
                   </span>

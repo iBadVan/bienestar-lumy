@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Boton, Burbuja, Cabecera, Lumy, Pantalla, Tarjeta, inputCls } from "@/components/ui";
-import { AFIRMACIONES, MODULOS, PREGUNTAS_CIERRE, PUNTOS_DIA, QUIZ } from "@/lib/config";
+import { AFIRMACIONES, MODULOS, PREGUNTAS_CIERRE, PUNTOS_DIA, PUNTOS_POR_PREGUNTA, QUIZ } from "@/lib/config";
 import { PRIORIDAD_APOYO, analizar } from "@/lib/riesgo";
 import { completarDia, hecho, tipoDia, useStore } from "@/lib/store";
 
@@ -22,11 +22,11 @@ function Quiz({ modulo, onFin }: { modulo: string; onFin: (p: number, t: number)
     if (elegida !== null) return;
     setElegida(idx);
     const ok = idx === p.c;
-    const nuevo = ok ? puntaje + 1 : puntaje;
+    const nuevo = ok ? puntaje + PUNTOS_POR_PREGUNTA : puntaje;
     if (ok) setPuntaje(nuevo);
     setTimeout(() => {
       setElegida(null);
-      if (i + 1 >= preguntas.length) onFin(nuevo, preguntas.length);
+      if (i + 1 >= preguntas.length) onFin(nuevo, preguntas.length * PUNTOS_POR_PREGUNTA);
       else setI(i + 1);
     }, 1400);
   }
@@ -290,8 +290,8 @@ export default function Actividad() {
 
       {tieneQuiz && quizListo && puntajeQuiz && (
         <p className="mb-4 rounded-2xl bg-lumy-nube px-4 py-3 text-sm">
-          Obtuviste {puntajeQuiz.p} de {puntajeQuiz.t}. Este puntaje se guarda aparte de tus puntos de
-          participación.
+          Obtuviste {puntajeQuiz.p} de {puntajeQuiz.t} puntos. Este puntaje se guarda aparte de tus
+          puntos de participación.
         </p>
       )}
 
