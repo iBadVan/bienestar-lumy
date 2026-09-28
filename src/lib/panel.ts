@@ -119,6 +119,31 @@ export async function revisarAlerta(
   return !error;
 }
 
+/* ------------------------------------------------- restablecer contrasena -- */
+
+/**
+ * F6: la administradora restablece la clave. Pasa por el servidor porque
+ * necesita permisos que no pueden vivir en el navegador.
+ */
+export async function restablecerClave(codigo: string) {
+  const c = sb();
+  if (!c) return { ok: false, error: "Sin conexion a la base." };
+
+  const { data } = await c.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) return { ok: false, error: "Vuelve a iniciar sesion." };
+
+  const r = await fetch("/api/restablecer", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ codigo }),
+  });
+
+  const cuerpo = await r.json();
+  if (!r.ok) return { ok: false, error: cuerpo.error ?? "No se pudo restablecer." };
+  return { ok: true, clave: cuerpo.clave as string };
+}
+
 /* ---------------------------------------------------------- exportacion -- */
 
 const comilla = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;

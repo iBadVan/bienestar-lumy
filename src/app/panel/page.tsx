@@ -12,6 +12,7 @@ import {
   descargarCSV,
   exportar,
   ingresarInvestigadora,
+  restablecerClave,
   revisarAlerta,
   sesionInvestigadora,
 } from "@/lib/panel";
@@ -33,6 +34,7 @@ export default function Panel() {
   const [alertas, setAlertas] = useState<FilaAlerta[]>([]);
   const [filtro, setFiltro] = useState("");
   const [aviso, setAviso] = useState("");
+  const [claveNueva, setClaveNueva] = useState<{ codigo: string; clave: string } | null>(null);
 
   const refrescar = useCallback(async () => {
     const [p, a] = await Promise.all([cargarParticipantes(), cargarAlertas()]);
@@ -161,6 +163,23 @@ export default function Panel() {
         </>
       )}
 
+      {claveNueva && (
+        <div className="mb-4 rounded-card border-2 border-lumy-rosa bg-white p-4 shadow-card">
+          <b className="block text-sm">Contrase\u00f1a temporal de {claveNueva.codigo}</b>
+          <p className="my-2 font-display text-2xl font-bold tracking-wide">{claveNueva.clave}</p>
+          <p className="text-xs text-lumy-tintaSuave">
+            D\u00edctasela a la participante. Al ingresar, la aplicaci\u00f3n le va a pedir que cree una
+            propia. Este aviso no vuelve a mostrarse.
+          </p>
+          <button
+            onClick={() => setClaveNueva(null)}
+            className="mt-3 rounded-xl border border-lumy-linea px-3 py-1 text-xs"
+          >
+            Ya la anot\u00e9
+          </button>
+        </div>
+      )}
+
       {tab === "estudiantes" && (
         <div className="rounded-card bg-white p-4 shadow-card">
           <input
@@ -181,6 +200,7 @@ export default function Panel() {
                   <th>Avance</th>
                   <th>Último ingreso</th>
                   <th>Estado</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -203,6 +223,19 @@ export default function Panel() {
                       <span className="rounded-pill bg-slate-100 px-2.5 py-0.5 text-xs capitalize">
                         {p.estado}
                       </span>
+                    </td>
+                    <td>
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Restablecer la contrase\u00f1a de ${p.codigo}? La actual dejar\u00e1 de servir.`)) return;
+                          const r = await restablecerClave(p.codigo);
+                          if (!r.ok) return setAviso(r.error ?? "Error");
+                          setClaveNueva({ codigo: p.codigo, clave: r.clave! });
+                        }}
+                        className="whitespace-nowrap rounded-xl border border-lumy-linea px-2.5 py-1 text-xs hover:border-lumy-rosa"
+                      >
+                        Restablecer clave
+                      </button>
                     </td>
                   </tr>
                 ))}
