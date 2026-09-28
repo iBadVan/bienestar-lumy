@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ReactNode } from "react";
 
@@ -95,44 +96,22 @@ export const inputCls =
 
 /* ------------------------------------------------------------------ lumy -- */
 
-/**
- * Avatar provisional dibujado en SVG.
- * Cuando las investigadoras entreguen la imagen definitiva de Lumy,
- * colocarla en /public/lumy.png y reemplazar este componente por una <Image>.
- */
-export function Lumy({ size = 128 }: { size?: number }) {
+/** Expresiones de Lumy entregadas por las investigadoras. */
+export type Expresion =
+  | "normal" | "feliz" | "triste" | "enojada" | "sorprendida" | "guinando"
+  | "apenada" | "confundida" | "cansada" | "emocionada" | "preocupada" | "juguetona";
+
+export function Lumy({ size = 128, expresion = "normal" }: { size?: number; expresion?: Expresion }) {
   return (
-    <svg
+    <Image
+      src={`/lumy/${expresion}.png`}
+      alt="Lumy"
       width={size}
       height={size}
-      viewBox="0 0 120 120"
-      role="img"
-      aria-label="Lumy"
-      className="mx-auto block"
-    >
-      <defs>
-        <clipPath id="lumy-clip">
-          <circle cx="60" cy="60" r="58" />
-        </clipPath>
-        <linearGradient id="lumy-bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FBD9EA" />
-          <stop offset="1" stopColor="#DCC9F6" />
-        </linearGradient>
-      </defs>
-      <g clipPath="url(#lumy-clip)">
-        <rect width="120" height="120" fill="url(#lumy-bg)" />
-        <path d="M60 116c-26 0-42 10-42 22h84c0-12-16-22-42-22z" fill="#9B7BC4" />
-        <path d="M32 46c0-18 12-30 28-30s28 12 28 30c0 6-2 10-2 14 0 0 6 36-26 36S34 66 34 66c0-4-2-14-2-20z" fill="#33253C" />
-        <ellipse cx="60" cy="62" rx="21" ry="25" fill="#F3CCB2" />
-        <path d="M39 50c4-12 14-18 21-18s17 6 21 18c-8-4-14-5-21-5s-13 1-21 5z" fill="#33253C" />
-        <circle cx="52" cy="62" r="2.6" fill="#3A2B45" />
-        <circle cx="68" cy="62" r="2.6" fill="#3A2B45" />
-        <path d="M54 73q6 5 12 0" stroke="#B4705C" strokeWidth="2.4" fill="none" strokeLinecap="round" />
-        <ellipse cx="45" cy="68" rx="4" ry="2.6" fill="#EFA9A1" opacity="0.5" />
-        <ellipse cx="75" cy="68" rx="4" ry="2.6" fill="#EFA9A1" opacity="0.5" />
-      </g>
-      <circle cx="60" cy="60" r="58" fill="none" stroke="#fff" strokeWidth="5" />
-    </svg>
+      priority
+      className="mx-auto block rounded-full object-cover shadow-card"
+      style={{ width: size, height: size }}
+    />
   );
 }
 

@@ -172,7 +172,7 @@ export default function Actividad() {
     return (
       <Pantalla>
         <div className="flex flex-1 flex-col justify-center">
-          <Lumy size={120} />
+          <Lumy size={120} expresion="preocupada" />
           <div className="my-5">
             <Burbuja>Gracias por escribir esto. Leerlo me importa, y no quiero que lo cargues sola.</Burbuja>
           </div>
@@ -201,7 +201,7 @@ export default function Actividad() {
     return (
       <Pantalla>
         <div className="flex flex-1 flex-col items-center justify-center text-center">
-          <span className="text-6xl">{esInsignia ? "🏅" : "🌙"}</span>
+          <Lumy size={112} expresion={esInsignia ? "emocionada" : "feliz"} />
           <h1 className="mt-4 font-display text-2xl font-bold">
             {esInsignia ? fin.dato : `Día ${s.dia} completo`}
           </h1>

@@ -162,3 +162,10 @@ export const MENSAJES_LUMY: Record<string, string> = {
   miedo: "Veo que hoy podrías necesitar una pausa. Recuerda que no tienes que ser fuerte todo el tiempo. ¿Qué tal si respiramos juntas?",
   tristeza: "Gracias por contármelo. La tristeza también merece espacio. Quédate aquí un momento conmigo.",
 };
+
+/** Expresion del avatar en la pantalla de acompanamiento, segun la emocion. */
+export const EXPRESION_APOYO: Record<string, "preocupada" | "apenada" | "triste"> = {
+  ira: "preocupada",
+  miedo: "preocupada",
+  tristeza: "apenada",
+};

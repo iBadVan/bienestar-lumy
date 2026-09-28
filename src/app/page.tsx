@@ -4,7 +4,7 @@ export default function Inicio() {
   return (
     <Pantalla>
       <div className="flex flex-1 flex-col items-center justify-center text-center">
-        <Lumy size={150} />
+        <Lumy size={150} expresion="feliz" />
         <h1 className="mt-6 font-display text-[2.1rem] font-bold leading-tight text-lumy-tinta">
           Bienestar <span className="text-lumy-rosa">✦</span>
         </h1>

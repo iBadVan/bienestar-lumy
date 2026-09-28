@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Boton, Burbuja, Lumy, Pantalla } from "@/components/ui";
-import { MENSAJES_LUMY } from "@/lib/config";
+import { EXPRESION_APOYO, MENSAJES_LUMY } from "@/lib/config";
 
 function Contenido() {
   const emo = useSearchParams().get("emo") ?? "miedo";
@@ -11,7 +11,7 @@ function Contenido() {
 
   return (
     <div className="flex flex-1 flex-col justify-center">
-      <Lumy size={140} />
+      <Lumy size={140} expresion={EXPRESION_APOYO[emo] ?? "preocupada"} />
       <div className="my-6">
         <Burbuja>&ldquo;{msg}&rdquo;</Burbuja>
       </div>
