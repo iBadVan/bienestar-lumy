@@ -24,8 +24,24 @@ function claveTemporal() {
 }
 
 export async function POST(req: Request) {
-  if (!URL || !SERVICE) {
-    return NextResponse.json({ error: "Servidor sin configurar." }, { status: 500 });
+  // Diagnostico claro en vez de un "no autorizado" que no dice nada.
+  if (!URL) {
+    return NextResponse.json({ error: "Falta NEXT_PUBLIC_SUPABASE_URL en el servidor." }, { status: 500 });
+  }
+  if (!SERVICE) {
+    return NextResponse.json(
+      { error: "Falta SUPABASE_SERVICE_KEY en el servidor. Agregala en Vercel y vuelve a desplegar." },
+      { status: 500 },
+    );
+  }
+  if (SERVICE.startsWith("sb_publishable_") || SERVICE.startsWith("sb_public")) {
+    return NextResponse.json(
+      {
+        error:
+          "SUPABASE_SERVICE_KEY tiene la clave publica. Debe ser la secreta, la que empieza con sb_secret_.",
+      },
+      { status: 500 },
+    );
   }
 
   const token = req.headers.get("authorization")?.replace("Bearer ", "");
@@ -44,14 +60,28 @@ export async function POST(req: Request) {
   }
 
   // 2. Quien pide es investigadora
-  const { data: inv } = await admin
+  const { data: inv, error: errInv } = await admin
     .from("investigadoras")
     .select("id, nombre")
     .eq("id", quien.user.id)
     .maybeSingle();
 
+  if (errInv) {
+    return NextResponse.json(
+      { error: `El servidor no pudo leer la tabla investigadoras: ${errInv.message}` },
+      { status: 500 },
+    );
+  }
+
   if (!inv) {
-    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+    return NextResponse.json(
+      {
+        error:
+          `Tu cuenta (${quien.user.id}) no figura en la tabla investigadoras, ` +
+          "o el servidor esta consultando sin permisos. Revisa SUPABASE_SERVICE_KEY.",
+      },
+      { status: 403 },
+    );
   }
 
   const { codigo } = (await req.json()) as { codigo?: string };

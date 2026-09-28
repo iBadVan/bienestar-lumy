@@ -250,6 +250,16 @@ grant update on alertas to authenticated;
 -- Vistas de apoyo para el panel.
 grant select on alertas_con_retraso, participantes_inactivas to authenticated;
 
+-- El rol del servidor. Se usa en el script de carga inicial y en el
+-- restablecimiento de contrasenas, que corren fuera del navegador.
+-- Sin estos permisos ambas cosas fallan con un "no autorizado" enganoso,
+-- porque el rol existe pero no alcanza las tablas.
+grant usage on schema public to service_role;
+grant all privileges on all tables in schema public to service_role;
+grant all privileges on all sequences in schema public to service_role;
+alter default privileges in schema public grant all on tables to service_role;
+alter default privileges in schema public grant all on sequences to service_role;
+
 -- =============================================================================
 -- Notas de implementacion
 --
