@@ -225,6 +225,32 @@ create policy a_update_admin on alertas
   for update using (es_investigadora()) with check (es_investigadora());
 
 -- =============================================================================
+-- Permisos de acceso al Data API
+--
+-- El proyecto se creo con "Automatically expose new tables" desactivado, que es
+-- lo que recomienda Supabase. Por eso hay que conceder los permisos a mano.
+-- Quien protege de verdad son las policies de arriba: estos GRANT solo permiten
+-- que la peticion llegue, y RLS decide despues que filas puede tocar cada quien.
+-- =============================================================================
+
+grant usage on schema public to anon, authenticated;
+
+-- Las participantes leen y escriben sus propios registros.
+grant select, insert on
+  registros_emocion, actividades_completadas, entradas_diario,
+  resultados_quiz, insignias_obtenidas, respuestas_cierre, alertas
+  to authenticated;
+
+grant select, update on participantes to authenticated;
+grant select on investigadoras to authenticated;
+
+-- Las investigadoras revisan y cierran alertas.
+grant update on alertas to authenticated;
+
+-- Vistas de apoyo para el panel.
+grant select on alertas_con_retraso, participantes_inactivas to authenticated;
+
+-- =============================================================================
 -- Notas de implementacion
 --
 -- 1. Autenticacion de participantes.

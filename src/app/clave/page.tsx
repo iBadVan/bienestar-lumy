@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Boton, Campo, Pantalla, inputCls } from "@/components/ui";
 import { CLAVE_INICIAL } from "@/lib/config";
+import { cambiarClaveRemota, haySupabase } from "@/lib/datos";
 import { useStore } from "@/lib/store";
 
 export default function CambiarClave() {
@@ -13,10 +14,14 @@ export default function CambiarClave() {
   const [b, setB] = useState("");
   const [err, setErr] = useState("");
 
-  function guardar() {
+  async function guardar() {
     if (a.length < 6) return setErr("Usa al menos 6 caracteres.");
     if (a !== b) return setErr("Las dos contraseñas no coinciden.");
     if (a === CLAVE_INICIAL) return setErr("Elige una distinta a la que te dieron.");
+    if (haySupabase) {
+      const r = await cambiarClaveRemota(a);
+      if (!r.ok) return setErr("No pudimos guardar tu contrase\u00f1a. Revisa tu conexi\u00f3n.");
+    }
     set((e) => {
       e.claveCambiada = true;
       return e;
@@ -38,7 +43,7 @@ export default function CambiarClave() {
           <input className={inputCls} type="password" value={b} onChange={(e) => setB(e.target.value)} />
         </Campo>
         {err ? <p className="mb-3 text-sm text-red-600">{err}</p> : null}
-        <Boton onClick={guardar}>Guardar y continuar</Boton>
+        <Boton onClick={() => void guardar()}>Guardar y continuar</Boton>
       </div>
     </Pantalla>
   );

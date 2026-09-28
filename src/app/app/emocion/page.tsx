@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Cabecera, Pantalla } from "@/components/ui";
 import { EMOCIONES } from "@/lib/config";
+import { encolar } from "@/lib/datos";
 import { useStore } from "@/lib/store";
 
 export default function RegistroEmocion() {
@@ -19,6 +20,7 @@ export default function RegistroEmocion() {
         e.emociones = e.emociones.filter((x) => x !== ultimo);
       }
       e.emociones.push({ dia: e.dia, emocion: id, fecha: new Date().toISOString() });
+      encolar("registros_emocion", { dia: e.dia, emocion: id });
       return e;
     });
     router.push(alerta ? `/app/apoyo?emo=${id}` : "/app");

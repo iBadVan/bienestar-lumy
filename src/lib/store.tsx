@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
+import { activarSincronizacion } from "./datos";
 import {
   CICLO,
   DIAS_TOTALES,
@@ -92,6 +93,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // primer uso, o almacenamiento bloqueado: seguimos en memoria
     }
     setListo(true);
+    activarSincronizacion();
   }, []);
 
   useEffect(() => {

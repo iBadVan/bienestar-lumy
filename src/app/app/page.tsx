@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Boton, Pantalla, Tarjeta } from "@/components/ui";
 import { DIAS_TOTALES, EMOCIONES, INSIGNIAS, MODULOS } from "@/lib/config";
+import { cerrarSesion, haySupabase, pendientes, sincronizar } from "@/lib/datos";
 import { emocionDe, hecho, racha, semanaDe, tipoDia, useStore } from "@/lib/store";
 
 function Grafica({ valores }: { valores: number[] }) {
@@ -37,9 +38,18 @@ export default function Home() {
   const { s, listo } = useStore();
   const router = useRouter();
 
+  const [porEnviar, setPorEnviar] = useState(0);
+
   useEffect(() => {
     if (listo && !s.perfil) router.replace("/");
   }, [listo, s.perfil, router]);
+
+  useEffect(() => {
+    const leer = () => setPorEnviar(pendientes());
+    leer();
+    const t = window.setInterval(leer, 5000);
+    return () => window.clearInterval(t);
+  }, [s]);
 
   if (!listo || !s.perfil) return null;
 
@@ -160,6 +170,26 @@ export default function Home() {
           })}
         </ul>
       </Tarjeta>
+
+      {haySupabase && porEnviar > 0 && (
+        <button
+          onClick={() => void sincronizar().then(() => setPorEnviar(pendientes()))}
+          className="mb-3 w-full rounded-2xl bg-amber-50 px-4 py-2.5 text-xs text-amber-800"
+        >
+          {porEnviar} {porEnviar === 1 ? "registro guardado" : "registros guardados"} en tu celular.
+          Se enviarán cuando tengas internet. Toca para intentar ahora.
+        </button>
+      )}
+
+      <button
+        onClick={() => {
+          void cerrarSesion();
+          window.location.href = "/";
+        }}
+        className="mb-3 w-full rounded-2xl border border-lumy-linea bg-white py-2.5 text-xs text-lumy-tintaSuave"
+      >
+        Cerrar sesión
+      </button>
 
       <Link href="/panel" className="mb-4 block text-center text-xs text-lumy-tintaSuave underline underline-offset-4">
         Ir al panel de administración

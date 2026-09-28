@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Boton, Burbuja, Cabecera, Lumy, Pantalla, Tarjeta, inputCls } from "@/components/ui";
 import { AFIRMACIONES, MODULOS, PREGUNTAS_CIERRE, PUNTOS_DIA, PUNTOS_POR_PREGUNTA, QUIZ } from "@/lib/config";
+import { encolar } from "@/lib/datos";
 import { PRIORIDAD_APOYO, analizar } from "@/lib/riesgo";
 import { completarDia, hecho, tipoDia, useStore } from "@/lib/store";
 
@@ -139,6 +140,7 @@ export default function Actividad() {
     set((e) => {
       if (texto) {
         e.diario.push({ dia: e.dia, tipo, texto, fecha: new Date().toISOString() });
+        encolar("entradas_diario", { dia: e.dia, modulo: tipo, texto });
         const hit = analizar(texto);
         if (hit) {
           e.alertas.push({
@@ -152,13 +154,25 @@ export default function Actividad() {
             extracto: texto.slice(0, 200),
             fecha: new Date().toISOString(),
           });
+          encolar("alertas", {
+            dia: e.dia,
+            categoria: hit.categoria,
+            categoria_num: hit.cat,
+            prioridad_auto: hit.prioridad,
+            extracto: texto.slice(0, 200),
+          });
           if (hit.prioridad >= PRIORIDAD_APOYO) resultado = { tipo: "riesgo" };
         }
       }
       if (puntajeQuiz) {
         e.quizes.push({ dia: e.dia, modulo: tipo, puntaje: puntajeQuiz.p, total: puntajeQuiz.t });
+        encolar("resultados_quiz", {
+          dia: e.dia, modulo: tipo, puntaje: puntajeQuiz.p, total: puntajeQuiz.t,
+        });
       }
       const insignia = completarDia(e);
+      encolar("actividades_completadas", { dia: e.dia, modulo: tipo });
+      if (insignia) encolar("insignias_obtenidas", { insignia: insignia.nombre, obtenida_en: new Date().toISOString() });
       if (insignia && resultado.tipo === "dia") resultado = { tipo: "insignia", dato: insignia.nombre };
       return e;
     });

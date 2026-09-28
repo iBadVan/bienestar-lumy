@@ -1,80 +1,105 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { DIAS_TOTALES, PLAZO_ALERTA_HORAS, PUNTOS_DIA, alertaVencida } from "@/lib/config";
-import { Estado, useStore } from "@/lib/store";
+import { useCallback, useEffect, useState } from "react";
+import { DIAS_TOTALES, PLAZO_ALERTA_HORAS, alertaVencida } from "@/lib/config";
+import { cerrarSesion, haySupabase } from "@/lib/datos";
+import {
+  FilaAlerta,
+  FilaParticipante,
+  cargarAlertas,
+  cargarParticipantes,
+  descargarCSV,
+  exportar,
+  ingresarInvestigadora,
+  revisarAlerta,
+  sesionInvestigadora,
+} from "@/lib/panel";
 
-/** Participantes de demostración, para que las pantallas no se vean vacías. */
-const DEMO = [
-  { cod: "LMY-0002", edad: 15, sexo: "F", grado: "3ro", avance: 47, ult: "Hoy 08:30", estado: "Activa" },
-  { cod: "LMY-0003", edad: 14, sexo: "M", grado: "2do", avance: 33, ult: "Ayer", estado: "Alerta" },
-  { cod: "LMY-0004", edad: 16, sexo: "F", grado: "4to", avance: 40, ult: "Hoy 09:15", estado: "Activa" },
-  { cod: "LMY-0005", edad: 13, sexo: "M", grado: "1ro", avance: 15, ult: "Hace 3 días", estado: "Inactiva" },
-  { cod: "LMY-0006", edad: 17, sexo: "F", grado: "5to", avance: 50, ult: "Hoy 07:10", estado: "Activa" },
+const TABLAS = [
+  { id: "registros_emocion", etiqueta: "Registros emocionales" },
+  { id: "entradas_diario", etiqueta: "Diario" },
+  { id: "resultados_quiz", etiqueta: "Cuestionarios" },
+  { id: "actividades_completadas", etiqueta: "Actividades" },
+  { id: "alertas", etiqueta: "Alertas" },
+  { id: "respuestas_cierre", etiqueta: "Encuesta final" },
 ];
 
-const comilla = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
-
-function csv(s: Estado, tipo: string) {
-  const cod = s.perfil?.codigo ?? "LMY-0001";
-  if (tipo === "emociones") {
-    return ["codigo,dia,emocion,fecha"]
-      .concat(s.emociones.map((e) => [cod, e.dia, e.emocion, e.fecha].map(comilla).join(",")))
-      .join("\n");
-  }
-  if (tipo === "diario") {
-    return ["codigo,dia,modulo,caracteres,texto,fecha"]
-      .concat(s.diario.map((d) => [cod, d.dia, d.tipo, d.texto.length, d.texto, d.fecha].map(comilla).join(",")))
-      .join("\n");
-  }
-  if (tipo === "quizes") {
-    return ["codigo,dia,modulo,puntaje,total"]
-      .concat(s.quizes.map((q) => [cod, q.dia, q.modulo, q.puntaje, q.total].map(comilla).join(",")))
-      .join("\n");
-  }
-  return ["codigo,dia,categoria,prioridad,estado,observacion,extracto,fecha"]
-    .concat(
-      s.alertas.map((a) =>
-        [a.codigo, a.dia, a.categoria, a.prioridad, a.estado, a.observacion, a.extracto, a.fecha]
-          .map(comilla)
-          .join(","),
-      ),
-    )
-    .join("\n");
-}
-
-function descargar(nombre: string, contenido: string) {
-  const blob = new Blob(["\ufeff" + contenido], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nombre;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 export default function Panel() {
-  const { s, set, listo } = useStore();
+  const [quien, setQuien] = useState<{ nombre: string } | null>(null);
+  const [cargando, setCargando] = useState(true);
   const [tab, setTab] = useState<"resumen" | "estudiantes" | "alertas">("resumen");
+  const [personas, setPersonas] = useState<FilaParticipante[]>([]);
+  const [alertas, setAlertas] = useState<FilaAlerta[]>([]);
+  const [filtro, setFiltro] = useState("");
+  const [aviso, setAviso] = useState("");
 
-  if (!listo) return null;
+  const refrescar = useCallback(async () => {
+    const [p, a] = await Promise.all([cargarParticipantes(), cargarAlertas()]);
+    setPersonas(p);
+    setAlertas(a);
+  }, []);
 
-  const pct = Math.round((s.completados.length / DIAS_TOTALES) * 100);
-  const criticas = s.alertas.filter((a) => a.prioridad >= 3 && a.estado === "pendiente").length;
+  useEffect(() => {
+    (async () => {
+      const s = await sesionInvestigadora();
+      setQuien(s);
+      if (s) await refrescar();
+      setCargando(false);
+    })();
+  }, [refrescar]);
+
+  if (!haySupabase) {
+    return (
+      <div className="mx-auto max-w-md px-5 py-16">
+        <h1 className="mb-2 font-display text-xl font-bold">Panel no disponible</h1>
+        <p className="text-sm text-lumy-tintaSuave">
+          Faltan las credenciales de la base de datos. Revisa el archivo .env.local.
+        </p>
+      </div>
+    );
+  }
+
+  if (cargando) {
+    return <p className="px-5 py-16 text-center text-sm text-lumy-tintaSuave">Cargando...</p>;
+  }
+
+  if (!quien) return <Ingreso alEntrar={(n) => { setQuien(n); void refrescar(); }} />;
+
+  const activas = personas.filter((p) => p.estado === "activa").length;
+  const criticas = alertas.filter((a) => a.prioridad_auto >= 3 && a.estado === "pendiente").length;
+  const avancePromedio = personas.length
+    ? Math.round(personas.reduce((s, p) => s + p.avance, 0) / personas.length)
+    : 0;
+
+  const visibles = personas.filter(
+    (p) => !filtro || p.codigo.toLowerCase().includes(filtro.toLowerCase()),
+  );
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-[max(1.5rem,env(safe-area-inset-top))]">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-xl font-bold">Panel de monitoreo</h1>
-          <p className="text-sm text-lumy-tintaSuave">
-            Resumen de la intervención, día {s.dia} de {DIAS_TOTALES}
-          </p>
+          <p className="text-sm text-lumy-tintaSuave">{quien.nombre}</p>
         </div>
-        <Link href="/app" className="rounded-pill bg-white px-4 py-2 text-sm shadow-card">
-          Ver como estudiante
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={() => void refrescar()}
+            className="rounded-pill bg-white px-4 py-2 text-sm shadow-card"
+          >
+            Actualizar
+          </button>
+          <button
+            onClick={() => {
+              void cerrarSesion();
+              window.location.reload();
+            }}
+            className="rounded-pill bg-white px-4 py-2 text-sm shadow-card"
+          >
+            Salir
+          </button>
+        </div>
       </header>
 
       <div className="mb-5 flex gap-1 rounded-pill bg-white p-1 shadow-card">
@@ -92,19 +117,13 @@ export default function Panel() {
         ))}
       </div>
 
-      <div className="mb-5 rounded-card border-l-4 border-amber-400 bg-amber-50 px-4 py-3 text-sm">
-        <b className="block">Datos de demostración</b>
-        Solo la fila del código propio refleja el uso real. Las demás son inventadas para revisar el
-        comportamiento de las pantallas.
-      </div>
-
       {tab === "resumen" && (
         <>
           <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { v: DEMO.length + 1, l: "Participantes" },
-              { v: DEMO.filter((d) => d.estado === "Activa").length + 1, l: "Activas hoy" },
-              { v: `${pct}%`, l: "Progreso global" },
+              { v: personas.length, l: "Participantes" },
+              { v: activas, l: "Activas" },
+              { v: `${avancePromedio}%`, l: "Avance promedio" },
               { v: criticas, l: "Alertas críticas" },
             ].map((k) => (
               <div key={k.l} className="rounded-card bg-white p-4 shadow-card">
@@ -117,223 +136,227 @@ export default function Panel() {
           <div className="rounded-card bg-white p-5 shadow-card">
             <h2 className="mb-1 font-display text-base font-semibold">Exportar datos</h2>
             <p className="mb-3 text-sm text-lumy-tintaSuave">
-              Archivos CSV con codificación UTF-8, listos para abrir en Excel o importar a SPSS.
+              Datos crudos por registro, sin nombres. Incluyen el retraso de sincronización en
+              minutos.
             </p>
             <div className="flex flex-wrap gap-2">
-              {["emociones", "diario", "quizes", "alertas"].map((t) => (
+              {TABLAS.map((t) => (
                 <button
-                  key={t}
-                  onClick={() => descargar(`bienestar_${t}.csv`, csv(s, t))}
-                  className="rounded-2xl border border-lumy-linea bg-white px-4 py-2 text-sm font-medium capitalize transition hover:border-lumy-rosa"
+                  key={t.id}
+                  onClick={async () => {
+                    setAviso("Preparando...");
+                    const csv = await exportar(t.id);
+                    if (csv === "sin datos") return setAviso(`${t.etiqueta}: todavía no hay datos.`);
+                    descargarCSV(`bienestar_${t.id}.csv`, csv);
+                    setAviso("");
+                  }}
+                  className="rounded-2xl border border-lumy-linea px-4 py-2 text-sm transition hover:border-lumy-rosa"
                 >
-                  {t}
+                  {t.etiqueta}
                 </button>
               ))}
             </div>
+            {aviso ? <p className="mt-3 text-sm text-lumy-tintaSuave">{aviso}</p> : null}
           </div>
         </>
       )}
 
       {tab === "estudiantes" && (
-        <div className="overflow-x-auto rounded-card bg-white p-4 shadow-card">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-lumy-tintaSuave">
-                <th className="py-2">Código</th>
-                <th>Edad</th>
-                <th>Sexo</th>
-                <th>Grado</th>
-                <th>Avance</th>
-                <th>Último ingreso</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-t border-lumy-linea">
-                <td className="py-2 font-semibold">{s.perfil?.codigo ?? "LMY-0001"}</td>
-                <td>{s.perfil?.edad ?? "-"}</td>
-                <td>{s.perfil?.sexo || "-"}</td>
-                <td>{s.perfil?.grado?.slice(0, 3) || "-"}</td>
-                <td>{pct}%</td>
-                <td>Ahora</td>
-                <td>
-                  <span className="rounded-pill bg-emerald-100 px-2.5 py-0.5 text-xs text-emerald-700">Activa</span>
-                </td>
-              </tr>
-              {DEMO.map((d) => (
-                <tr key={d.cod} className="border-t border-lumy-linea">
-                  <td className="py-2">{d.cod}</td>
-                  <td>{d.edad}</td>
-                  <td>{d.sexo}</td>
-                  <td>{d.grado}</td>
-                  <td>{d.avance}%</td>
-                  <td>{d.ult}</td>
-                  <td>
-                    <span
-                      className={`rounded-pill px-2.5 py-0.5 text-xs ${
-                        d.estado === "Alerta"
-                          ? "bg-amber-100 text-amber-700"
-                          : d.estado === "Inactiva"
-                            ? "bg-slate-100 text-slate-600"
-                            : "bg-emerald-100 text-emerald-700"
-                      }`}
-                    >
-                      {d.estado}
-                    </span>
-                  </td>
+        <div className="rounded-card bg-white p-4 shadow-card">
+          <input
+            value={filtro}
+            onChange={(e) => setFiltro(e.target.value)}
+            placeholder="Buscar por código..."
+            className="mb-3 w-full rounded-2xl border border-lumy-linea px-4 py-2 text-sm"
+          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-lumy-tintaSuave">
+                  <th className="py-2">Código</th>
+                  <th>Edad</th>
+                  <th>Sexo</th>
+                  <th>Grado</th>
+                  <th>Días</th>
+                  <th>Avance</th>
+                  <th>Último ingreso</th>
+                  <th>Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {visibles.map((p) => (
+                  <tr key={p.id} className="border-t border-lumy-linea">
+                    <td className="py-2 font-medium">{p.codigo}</td>
+                    <td>{p.edad ?? "-"}</td>
+                    <td>{p.sexo ?? "-"}</td>
+                    <td>{p.grado?.slice(0, 3) ?? "-"}</td>
+                    <td>
+                      {p.dias_completados}/{DIAS_TOTALES}
+                    </td>
+                    <td>{p.avance}%</td>
+                    <td>
+                      {p.ultimo_ingreso
+                        ? new Date(p.ultimo_ingreso).toLocaleDateString("es-PE")
+                        : "Nunca"}
+                    </td>
+                    <td>
+                      <span className="rounded-pill bg-slate-100 px-2.5 py-0.5 text-xs capitalize">
+                        {p.estado}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p className="mt-3 text-xs text-lumy-tintaSuave">
-            El nombre completo no se muestra aquí, solo el código de participante.
+            Se muestra el código, nunca el nombre. {visibles.length} de {personas.length}.
           </p>
         </div>
       )}
 
       {tab === "alertas" && (
         <div className="space-y-3">
-          {s.alertas.length === 0 && (
+          {alertas.length === 0 && (
             <p className="rounded-card bg-white p-5 text-sm text-lumy-tintaSuave shadow-card">
-              Sin alertas registradas. Escribe algo en el diario del estudiante para generar una.
+              Sin alertas registradas.
             </p>
           )}
-          {s.alertas
-            .slice()
-            .reverse()
-            .map((a) => (
-              <div key={a.id} className="rounded-card bg-white p-4 shadow-card">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span
-                    className={`rounded-pill px-2.5 py-0.5 text-xs font-bold ${
-                      a.prioridad >= 4
-                        ? "bg-red-100 text-red-700"
-                        : a.prioridad === 3
-                          ? "bg-amber-100 text-amber-700"
-                          : "bg-lumy-nube text-lumy-fucsia"
-                    }`}
-                  >
-                    Prioridad {a.prioridad}
-                  </span>
-                  <b className="text-sm">{a.codigo}</b>
-                  <span className="text-xs text-lumy-tintaSuave">
-                    día {a.dia} · {a.categoria}
-                  </span>
-                  {a.estado === "pendiente" && PLAZO_ALERTA_HORAS[a.prioridad] ? (
-                    <span
-                      className={`rounded-pill px-2.5 py-0.5 text-xs font-semibold ${
-                        alertaVencida(a.prioridad, a.fecha)
-                          ? "bg-red-600 text-white"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {alertaVencida(a.prioridad, a.fecha)
-                        ? "Fuera de plazo"
-                        : `Plazo ${PLAZO_ALERTA_HORAS[a.prioridad]} h`}
-                    </span>
-                  ) : null}
-                  <span className="ml-auto rounded-pill bg-slate-100 px-2.5 py-0.5 text-xs capitalize">
-                    {a.estado}
-                  </span>
-                </div>
-                <p className="mb-3 rounded-2xl bg-lumy-crema px-3 py-2 text-sm">{a.extracto}</p>
-
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {[0, 1, 2, 3, 4].map((p) => (
-                    <button
-                      key={p}
-                      onClick={() =>
-                        set((e) => {
-                          const x = e.alertas.find((z) => z.id === a.id);
-                          if (x) x.prioridad = p;
-                          return e;
-                        })
-                      }
-                      className="rounded-xl border border-lumy-linea px-3 py-1 text-xs hover:border-lumy-rosa"
-                    >
-                      {p}
-                    </button>
-                  ))}
-                  {(["en seguimiento", "cerrada"] as const).map((est) => (
-                    <button
-                      key={est}
-                      onClick={() =>
-                        set((e) => {
-                          const x = e.alertas.find((z) => z.id === a.id);
-                          if (x) x.estado = est;
-                          return e;
-                        })
-                      }
-                      className="rounded-xl border border-lumy-linea px-3 py-1 text-xs capitalize hover:border-lumy-rosa"
-                    >
-                      {est}
-                    </button>
-                  ))}
-                </div>
-
-                <textarea
-                  className="w-full rounded-2xl border border-lumy-linea bg-white px-3 py-2 text-sm"
-                  placeholder="Observación de la investigadora..."
-                  defaultValue={a.observacion}
-                  onBlur={(ev) =>
-                    set((e) => {
-                      const x = e.alertas.find((z) => z.id === a.id);
-                      if (x) x.observacion = ev.target.value;
-                      return e;
-                    })
-                  }
-                />
-              </div>
-            ))}
+          {alertas.map((a) => (
+            <Alerta key={a.id} a={a} alGuardar={() => void refrescar()} />
+          ))}
         </div>
       )}
 
-      <div className="mt-6 rounded-card bg-white p-5 shadow-card">
-        <h2 className="mb-1 font-display text-base font-semibold">Controles de prueba</h2>
-        <p className="mb-3 text-sm text-lumy-tintaSuave">
-          Solo existen en la demo, para recorrer los {DIAS_TOTALES} días sin esperar un mes.
-        </p>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => set((e) => ({ ...e, dia: Math.max(1, e.dia - 1) }))}
-            className="rounded-2xl border border-lumy-linea px-4 py-2 text-sm"
-          >
-            Día anterior
-          </button>
-          <button
-            onClick={() => set((e) => ({ ...e, dia: Math.min(DIAS_TOTALES, e.dia + 1) }))}
-            className="rounded-2xl border border-lumy-linea px-4 py-2 text-sm"
-          >
-            Día siguiente
-          </button>
-          <button
-            onClick={() =>
-              set((e) => {
-                for (let k = 0; k < 7 && e.dia < DIAS_TOTALES; k++) {
-                  if (!e.completados.includes(e.dia)) {
-                    e.completados.push(e.dia);
-                    e.puntos += PUNTOS_DIA;
-                  }
-                  e.dia++;
-                }
-                return e;
-              })
-            }
-            className="rounded-2xl border border-lumy-linea px-4 py-2 text-sm"
-          >
-            Avanzar 7 días
-          </button>
-          <button
-            onClick={() => {
-              window.localStorage.removeItem("bienestar_lumy_v1");
-              window.location.href = "/";
-            }}
-            className="rounded-2xl border border-lumy-linea px-4 py-2 text-sm"
-          >
-            Empezar de cero
-          </button>
-        </div>
+      <Link
+        href="/app"
+        className="mt-6 block text-center text-xs text-lumy-tintaSuave underline underline-offset-4"
+      >
+        Ver como estudiante
+      </Link>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- una alerta - */
+
+function Alerta({ a, alGuardar }: { a: FilaAlerta; alGuardar: () => void }) {
+  const [obs, setObs] = useState(a.observacion ?? "");
+  const vencida = a.estado === "pendiente" && alertaVencida(a.prioridad_auto, a.recibido_en);
+  const retraso = Math.round(
+    (new Date(a.recibido_en).getTime() - new Date(a.ocurrido_en).getTime()) / 60000,
+  );
+
+  async function aplicar(cambios: Parameters<typeof revisarAlerta>[1]) {
+    await revisarAlerta(a.id, cambios);
+    alGuardar();
+  }
+
+  return (
+    <div className={`rounded-card bg-white p-4 shadow-card ${vencida ? "ring-2 ring-red-500" : ""}`}>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-pill px-2.5 py-0.5 text-xs font-bold ${
+            a.prioridad_auto >= 4
+              ? "bg-red-100 text-red-700"
+              : a.prioridad_auto === 3
+                ? "bg-amber-100 text-amber-700"
+                : "bg-lumy-nube text-lumy-fucsia"
+          }`}
+        >
+          Prioridad {a.prioridad_final ?? a.prioridad_auto}
+        </span>
+        <b className="text-sm">{a.codigo}</b>
+        <span className="text-xs text-lumy-tintaSuave">
+          día {a.dia} · {a.categoria}
+        </span>
+        {vencida && (
+          <span className="rounded-pill bg-red-600 px-2.5 py-0.5 text-xs font-semibold text-white">
+            Fuera de plazo ({PLAZO_ALERTA_HORAS[a.prioridad_auto]} h)
+          </span>
+        )}
+        <span className="ml-auto rounded-pill bg-slate-100 px-2.5 py-0.5 text-xs capitalize">
+          {a.estado}
+        </span>
       </div>
+
+      <p className="mb-2 rounded-2xl bg-lumy-crema px-3 py-2 text-sm">{a.extracto}</p>
+
+      <p className="mb-3 text-xs text-lumy-tintaSuave">
+        Escrito {new Date(a.ocurrido_en).toLocaleString("es-PE")} · llegó{" "}
+        {retraso < 2 ? "al momento" : `${retraso} min después`}
+      </p>
+
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        {[0, 1, 2, 3, 4].map((p) => (
+          <button
+            key={p}
+            onClick={() => void aplicar({ prioridad_final: p })}
+            className={`rounded-xl border px-3 py-1 text-xs ${
+              a.prioridad_final === p ? "border-lumy-rosa bg-lumy-nube" : "border-lumy-linea"
+            }`}
+          >
+            {p}
+          </button>
+        ))}
+        {(["en seguimiento", "cerrada"] as const).map((e) => (
+          <button
+            key={e}
+            onClick={() => void aplicar({ estado: e })}
+            className="rounded-xl border border-lumy-linea px-3 py-1 text-xs capitalize"
+          >
+            {e}
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        className="w-full rounded-2xl border border-lumy-linea px-3 py-2 text-sm"
+        placeholder="Observación de la investigadora..."
+        value={obs}
+        onChange={(e) => setObs(e.target.value)}
+        onBlur={() => obs !== (a.observacion ?? "") && void aplicar({ observacion: obs })}
+      />
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- ingreso - */
+
+function Ingreso({ alEntrar }: { alEntrar: (q: { nombre: string }) => void }) {
+  const [correo, setCorreo] = useState("");
+  const [clave, setClave] = useState("");
+  const [err, setErr] = useState("");
+
+  return (
+    <div className="mx-auto max-w-sm px-5 py-16">
+      <h1 className="mb-1 font-display text-2xl font-bold">Panel de monitoreo</h1>
+      <p className="mb-6 text-sm text-lumy-tintaSuave">Acceso para el equipo de investigación.</p>
+
+      <input
+        className="mb-3 w-full rounded-2xl border border-lumy-linea px-4 py-3 text-sm"
+        placeholder="Correo"
+        value={correo}
+        onChange={(e) => setCorreo(e.target.value)}
+      />
+      <input
+        className="mb-3 w-full rounded-2xl border border-lumy-linea px-4 py-3 text-sm"
+        type="password"
+        placeholder="Contraseña"
+        value={clave}
+        onChange={(e) => setClave(e.target.value)}
+      />
+      {err ? <p className="mb-3 text-sm text-red-600">{err}</p> : null}
+      <button
+        onClick={async () => {
+          const r = await ingresarInvestigadora(correo.trim(), clave);
+          if (!r.ok) return setErr(r.error ?? "No se pudo ingresar.");
+          alEntrar(r.quien as { nombre: string });
+        }}
+        className="w-full rounded-pill bg-lumy-gradient py-3 font-semibold text-white shadow-soft"
+      >
+        Entrar
+      </button>
     </div>
   );
 }
