@@ -35,6 +35,7 @@ export default function Panel() {
   const [filtro, setFiltro] = useState("");
   const [aviso, setAviso] = useState("");
   const [claveNueva, setClaveNueva] = useState<{ codigo: string; clave: string } | null>(null);
+  const [error, setError] = useState("");
 
   const refrescar = useCallback(async () => {
     const [p, a] = await Promise.all([cargarParticipantes(), cargarAlertas()]);
@@ -163,23 +164,6 @@ export default function Panel() {
         </>
       )}
 
-      {claveNueva && (
-        <div className="mb-4 rounded-card border-2 border-lumy-rosa bg-white p-4 shadow-card">
-          <b className="block text-sm">Contrase\u00f1a temporal de {claveNueva.codigo}</b>
-          <p className="my-2 font-display text-2xl font-bold tracking-wide">{claveNueva.clave}</p>
-          <p className="text-xs text-lumy-tintaSuave">
-            D\u00edctasela a la participante. Al ingresar, la aplicaci\u00f3n le va a pedir que cree una
-            propia. Este aviso no vuelve a mostrarse.
-          </p>
-          <button
-            onClick={() => setClaveNueva(null)}
-            className="mt-3 rounded-xl border border-lumy-linea px-3 py-1 text-xs"
-          >
-            Ya la anot\u00e9
-          </button>
-        </div>
-      )}
-
       {tab === "estudiantes" && (
         <div className="rounded-card bg-white p-4 shadow-card">
           <input
@@ -229,7 +213,7 @@ export default function Panel() {
                         onClick={async () => {
                           if (!confirm(`Restablecer la contrase\u00f1a de ${p.codigo}? La actual dejar\u00e1 de servir.`)) return;
                           const r = await restablecerClave(p.codigo);
-                          if (!r.ok) return setAviso(r.error ?? "Error");
+                          if (!r.ok) return setError(r.error ?? "No se pudo restablecer.");
                           setClaveNueva({ codigo: p.codigo, clave: r.clave! });
                         }}
                         className="whitespace-nowrap rounded-xl border border-lumy-linea px-2.5 py-1 text-xs hover:border-lumy-rosa"
@@ -267,6 +251,42 @@ export default function Panel() {
       >
         Ver como estudiante
       </Link>
+
+      {(claveNueva || error) && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-5">
+          <div className="w-full max-w-sm rounded-card bg-white p-6 text-center shadow-soft">
+            {claveNueva ? (
+              <>
+                <p className="text-sm text-lumy-tintaSuave">Contrase\u00f1a temporal de</p>
+                <b className="mb-3 block font-display text-lg">{claveNueva.codigo}</b>
+                <p className="mb-3 select-all rounded-2xl bg-lumy-nube py-4 font-display text-3xl font-bold tracking-wider">
+                  {claveNueva.clave}
+                </p>
+                <p className="mb-5 text-xs leading-relaxed text-lumy-tintaSuave">
+                  An\u00f3tala ahora: este aviso no vuelve a mostrarse. Al ingresar con ella, la
+                  aplicaci\u00f3n le va a pedir que cree una propia.
+                </p>
+                <button
+                  onClick={() => setClaveNueva(null)}
+                  className="w-full rounded-pill bg-lumy-gradient py-3 font-semibold text-white"
+                >
+                  Ya la anot\u00e9
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="mb-4 text-sm text-red-600">{error}</p>
+                <button
+                  onClick={() => setError("")}
+                  className="w-full rounded-pill border border-lumy-linea py-3 text-sm"
+                >
+                  Entendido
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
