@@ -74,7 +74,9 @@ export default function Home() {
   return (
     <Pantalla>
       <section className="mb-4 rounded-card bg-lumy-gradient p-5 text-white shadow-soft">
-        <p className="font-display text-xl font-bold">¡Hola, {s.perfil.codigo}!</p>
+        <p className="font-display text-xl font-bold">
+          ¡Hola, {s.perfil.codigoEstudio ?? s.perfil.codigo}!
+        </p>
         <p className="mb-4 text-sm text-white/85">
           Día {s.dia} de {DIAS_TOTALES}
         </p>

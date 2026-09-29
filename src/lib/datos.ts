@@ -52,7 +52,7 @@ export async function iniciarSesion(codigo: string, clave: string) {
   // no cuenta: puede venir de otra sesion o de una prueba anterior.
   const { data: fila } = await c
     .from("participantes")
-    .select("clave_cambiada, dia_actual, estado")
+    .select("clave_cambiada, dia_actual, estado, codigo_estudio")
     .eq("codigo", codigo)
     .single();
 
@@ -63,6 +63,7 @@ export async function iniciarSesion(codigo: string, clave: string) {
     claveCambiada: fila?.clave_cambiada ?? false,
     diaActual: fila?.dia_actual ?? 1,
     estado: fila?.estado ?? "activa",
+    codigoEstudio: fila?.codigo_estudio ?? null,
   };
 }
 
@@ -74,6 +75,28 @@ export async function cambiarClaveRemota(nueva: string) {
   const { data } = await c.auth.getUser();
   if (data.user) await c.from("participantes").update({ clave_cambiada: true }).eq("id", data.user.id);
   return { ok: true };
+}
+
+/**
+ * El dia de intervencion se calcula desde la base, no desde el celular.
+ * Antes vivia en el navegador: si la participante reinstalaba la app o entraba
+ * desde otro equipo, volvia al dia 1 y se perdia su avance.
+ */
+export async function diaDesdeServidor(codigo: string) {
+  const c = sb();
+  if (!c) return null;
+  const { data } = await c
+    .from("participantes")
+    .select("dia_actual")
+    .eq("codigo", codigo)
+    .maybeSingle();
+  return data?.dia_actual ?? null;
+}
+
+export async function guardarDia(codigo: string, dia: number) {
+  const c = sb();
+  if (!c) return;
+  await c.from("participantes").update({ dia_actual: dia }).eq("codigo", codigo);
 }
 
 export async function cerrarSesion() {

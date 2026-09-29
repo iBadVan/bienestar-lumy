@@ -76,7 +76,10 @@ export default function Panel() {
     : 0;
 
   const visibles = personas.filter(
-    (p) => !filtro || p.codigo.toLowerCase().includes(filtro.toLowerCase()),
+    (p) =>
+      !filtro ||
+      p.codigo.toLowerCase().includes(filtro.toLowerCase()) ||
+      (p.codigo_estudio ?? "").toLowerCase().includes(filtro.toLowerCase()),
   );
 
   return (
@@ -176,7 +179,8 @@ export default function Panel() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs text-lumy-tintaSuave">
-                  <th className="py-2">Código</th>
+                  <th className="py-2">Estudio</th>
+                  <th>Acceso</th>
                   <th>Edad</th>
                   <th>Sexo</th>
                   <th>Grado</th>
@@ -190,7 +194,8 @@ export default function Panel() {
               <tbody>
                 {visibles.map((p) => (
                   <tr key={p.id} className="border-t border-lumy-linea">
-                    <td className="py-2 font-medium">{p.codigo}</td>
+                    <td className="py-2 font-medium">{p.codigo_estudio ?? "sin asignar"}</td>
+                    <td className="text-xs text-lumy-tintaSuave">{p.codigo}</td>
                     <td>{p.edad ?? "-"}</td>
                     <td>{p.sexo ?? "-"}</td>
                     <td>{p.grado?.slice(0, 3) ?? "-"}</td>

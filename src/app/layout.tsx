@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { BotonAtras } from "@/components/BotonAtras";
 import { StoreProvider } from "@/lib/store";
 
 export const metadata: Metadata = {
@@ -26,7 +27,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased">
-        <StoreProvider>{children}</StoreProvider>
+        <StoreProvider>
+          <BotonAtras />
+          {children}
+        </StoreProvider>
       </body>
     </html>
   );

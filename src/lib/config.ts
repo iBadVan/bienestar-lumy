@@ -9,12 +9,22 @@ export const DIAS_TOTALES = 30;
 /** L5: 10 puntos por día completado, 300 como máximo. */
 export const PUNTOS_DIA = 10;
 
-/** F4: clave inicial común, con cambio obligatorio en el primer ingreso (F5). */
+/**
+ * Ya no hay clave comun: cada participante crea la suya al registrarse.
+ * Se conserva la constante porque el panel la menciona al restablecer.
+ */
 export const CLAVE_INICIAL = "Lumy2026";
 
-/** F3: rango de códigos asignados al estudio. */
-export const CODIGO_MIN = 1;
-export const CODIGO_MAX = 150;
+/**
+ * Dos identificadores distintos:
+ *
+ *  - Codigo de acceso: LMY-K4T9P. Aleatorio, es el que se reparte en papel y
+ *    con el que la participante entra. No se puede adivinar ni enumerar.
+ *  - Codigo de estudio: LMY-0001 a LMY-0150. Correlativo, lo asigna el sistema
+ *    al registrarse y es el que se usa en el analisis.
+ */
+export const FORMATO_CODIGO_ACCESO = /^LMY-[A-Z0-9]{5}$/;
+export const TOTAL_PARTICIPANTES = 150;
 
 export type Emocion = {
   id: string;

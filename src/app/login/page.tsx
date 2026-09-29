@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Boton, Cabecera, Campo, Pantalla, inputCls } from "@/components/ui";
-import { CLAVE_INICIAL, CODIGO_MAX, CODIGO_MIN } from "@/lib/config";
+import { CLAVE_INICIAL } from "@/lib/config";
 import { haySupabase, iniciarSesion } from "@/lib/datos";
 import { useStore } from "@/lib/store";
 
@@ -16,11 +16,12 @@ export default function Login() {
 
   async function entrar() {
     const c = cod.trim().toUpperCase();
-    const n = Number(c.replace("LMY-", ""));
-    if (!/^LMY-\d{4}$/.test(c) || Number.isNaN(n) || n < CODIGO_MIN || n > CODIGO_MAX) {
-      return setErr("Revisa tu código. Debe verse así: LMY-0001.");
+    if (!/^LMY-[A-Z0-9]{5}$/.test(c)) {
+      return setErr("Revisa tu código. Se ve así: LMY-K4T9P");
     }
     let debeCambiar = !s.claveCambiada;
+    let diaServidor: number | null = null;
+    let codigoEstudio: string | null = null;
 
     if (haySupabase) {
       const r = await iniciarSesion(c, clave);
@@ -36,12 +37,18 @@ export default function Login() {
       }
       // Manda lo que diga el servidor, no lo que quedó en este navegador.
       debeCambiar = r.claveCambiada === false;
+      diaServidor = r.diaActual ?? null;
+      codigoEstudio = r.codigoEstudio ?? null;
     } else if (!s.claveCambiada && clave !== CLAVE_INICIAL) {
       return setErr("Contraseña incorrecta.");
     }
 
     set((e) => {
       e.claveCambiada = !debeCambiar;
+      // El servidor sabe en que dia va. Si la participante reinstalo la app,
+      // esto recupera su avance en vez de empezar de cero.
+      if (diaServidor) e.dia = diaServidor;
+      if (e.perfil && codigoEstudio) e.perfil.codigoEstudio = codigoEstudio;
       if (!e.perfil) {
         e.perfil = { codigo: c, inicial: "", apellidos: "", edad: null, sexo: "", grado: "", viveConAmbosPadres: "" };
       } else {
@@ -58,11 +65,18 @@ export default function Login() {
       <div className="flex flex-1 flex-col justify-center">
         <h1 className="text-center font-display text-2xl font-bold">¡Hola de nuevo!</h1>
         <p className="mb-6 text-center text-sm text-lumy-tintaSuave">
-          Ingresa con tu código para continuar
+          Usa el mismo código con el que te registraste
         </p>
 
-        <Campo label="Código de acceso">
-          <input className={inputCls} placeholder="LMY-0001" value={cod} onChange={(e) => setCod(e.target.value)} />
+        <Campo label="Código de acceso" hint="El que está en tu papel. Ejemplo: LMY-K4T9P">
+          <input
+            className={`${inputCls} font-display tracking-wider`}
+            placeholder="LMY-XXXXX"
+            value={cod}
+            onChange={(e) => setCod(e.target.value.toUpperCase())}
+            autoCapitalize="characters"
+            autoComplete="off"
+          />
         </Campo>
         <Campo label="Contraseña">
           <input className={inputCls} type="password" placeholder="••••••••" value={clave} onChange={(e) => setClave(e.target.value)} />

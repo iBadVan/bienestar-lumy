@@ -6,6 +6,7 @@ import { Afiche } from "@/components/Afiche";
 import { Boton, Burbuja, Cabecera, Lumy, Pantalla, Tarjeta, inputCls } from "@/components/ui";
 import {
   AFIRMACIONES,
+  DIAS_TOTALES,
   MODULOS,
   PREGUNTAS_CIERRE,
   PUNTOS_DIA,
@@ -13,7 +14,7 @@ import {
   QUIZ,
   aficheDe,
 } from "@/lib/config";
-import { encolar } from "@/lib/datos";
+import { encolar, guardarDia } from "@/lib/datos";
 import { cancelarInsistenciaDeHoy } from "@/lib/notificaciones";
 import { PRIORIDAD_APOYO, analizar } from "@/lib/riesgo";
 import { completarDia, hecho, semanaDe, tipoDia, useStore } from "@/lib/store";
@@ -188,6 +189,7 @@ export default function Actividad() {
     });
 
     void cancelarInsistenciaDeHoy();
+    if (s.perfil) void guardarDia(s.perfil.codigo, Math.min(DIAS_TOTALES, s.dia + 1));
     setFin(resultado);
   }
 

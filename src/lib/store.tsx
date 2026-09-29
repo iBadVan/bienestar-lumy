@@ -32,7 +32,10 @@ export type Alerta = {
 export type ResultadoQuiz = { dia: number; modulo: string; puntaje: number; total: number };
 
 export type Perfil = {
+  /** Codigo de acceso: con el que entra y con el que se la busca en la base. */
   codigo: string;
+  /** Correlativo del estudio (LMY-0001). Es el que se le muestra a ella. */
+  codigoEstudio?: string;
   inicial: string;
   apellidos: string;
   edad: number | null;

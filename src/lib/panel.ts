@@ -12,6 +12,7 @@ import { sb } from "./datos";
 export type FilaParticipante = {
   id: string;
   codigo: string;
+  codigo_estudio: string | null;
   edad: number | null;
   sexo: string | null;
   grado: string | null;
@@ -74,8 +75,8 @@ export async function cargarParticipantes(): Promise<FilaParticipante[]> {
 
   const { data: personas } = await c
     .from("participantes")
-    .select("id, codigo, edad, sexo, grado, estado, dia_actual, ultimo_ingreso")
-    .order("codigo");
+    .select("id, codigo, codigo_estudio, edad, sexo, grado, estado, dia_actual, ultimo_ingreso")
+    .order("codigo_estudio", { nullsFirst: false });
 
   const { data: hechos } = await c.from("actividades_completadas").select("participante");
 
