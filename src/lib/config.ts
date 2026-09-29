@@ -200,3 +200,33 @@ export function alertaVencida(prioridad: number, recibidoEn: string): boolean {
   if (!horas) return false;
   return Date.now() - new Date(recibidoEn).getTime() > horas * 3600 * 1000;
 }
+
+/**
+ * Afiches entregados por las investigadoras el 28/09/2026.
+ * Dos por semana, de modo que el contenido cambie en cada ciclo en vez de
+ * repetirse. PENDIENTE de que ellas confirmen este orden.
+ */
+export type Afiche = { archivo: string; titulo: string };
+
+export const AFICHES: Record<number, { psicoeducacion: Afiche; manifestaciones: Afiche }> = {
+  1: {
+    psicoeducacion: { archivo: "semana1-psicoeducacion", titulo: "El estrés, ¿aliado o enemigo?" },
+    manifestaciones: { archivo: "semana1-manifestaciones", titulo: "El estrés, ¿cómo te avisa?" },
+  },
+  2: {
+    psicoeducacion: { archivo: "semana2-psicoeducacion", titulo: "Ansiedad, ¿por qué me preocupo tanto?" },
+    manifestaciones: { archivo: "semana2-manifestaciones", titulo: "Manifestaciones de la ansiedad" },
+  },
+  3: {
+    psicoeducacion: { archivo: "semana3-psicoeducacion", titulo: "Depresión, ¿es tristeza o hay algo más?" },
+    manifestaciones: { archivo: "semana3-manifestaciones", titulo: "Manifestaciones de la depresión" },
+  },
+  4: {
+    psicoeducacion: { archivo: "semana4-psicoeducacion", titulo: "Afrontamiento, ¿qué hago con lo que siento?" },
+    manifestaciones: { archivo: "semana4-manifestaciones", titulo: "Recomendaciones, ¿qué puedo hacer por mí?" },
+  },
+};
+
+export function aficheDe(semana: number, tipo: "psicoeducacion" | "manifestaciones") {
+  return AFICHES[Math.min(4, Math.max(1, semana))][tipo];
+}

@@ -2,11 +2,21 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Afiche } from "@/components/Afiche";
 import { Boton, Burbuja, Cabecera, Lumy, Pantalla, Tarjeta, inputCls } from "@/components/ui";
-import { AFIRMACIONES, MODULOS, PREGUNTAS_CIERRE, PUNTOS_DIA, PUNTOS_POR_PREGUNTA, QUIZ } from "@/lib/config";
+import {
+  AFIRMACIONES,
+  MODULOS,
+  PREGUNTAS_CIERRE,
+  PUNTOS_DIA,
+  PUNTOS_POR_PREGUNTA,
+  QUIZ,
+  aficheDe,
+} from "@/lib/config";
 import { encolar } from "@/lib/datos";
+import { cancelarInsistenciaDeHoy } from "@/lib/notificaciones";
 import { PRIORIDAD_APOYO, analizar } from "@/lib/riesgo";
-import { completarDia, hecho, tipoDia, useStore } from "@/lib/store";
+import { completarDia, hecho, semanaDe, tipoDia, useStore } from "@/lib/store";
 
 /* ------------------------------------------------------------------ quiz -- */
 
@@ -177,6 +187,7 @@ export default function Actividad() {
       return e;
     });
 
+    void cancelarInsistenciaDeHoy();
     setFin(resultado);
   }
 
@@ -238,7 +249,10 @@ export default function Actividad() {
     <Pantalla>
       <Cabecera titulo={`Día ${s.dia} · ${mod.nombre}`} volver="/app" />
       <h1 className="font-display text-2xl font-bold">
-        {mod.ico} {mod.nombre}
+        {mod.ico}{" "}
+        {tipo === "psicoeducacion" || tipo === "manifestaciones"
+          ? aficheDe(semanaDe(s.dia), tipo).titulo
+          : mod.nombre}
       </h1>
       <p className="mb-5 text-sm text-lumy-tintaSuave">{mod.intro}</p>
 
@@ -249,12 +263,7 @@ export default function Actividad() {
       )}
 
       {(tipo === "psicoeducacion" || tipo === "manifestaciones") && (
-        <Tarjeta className="mb-5 border-2 border-dashed border-lumy-linea bg-lumy-crema text-center">
-          <b className="block font-display">Infografía educativa</b>
-          <p className="mt-1 text-xs text-lumy-tintaSuave">
-            Pendiente de entrega por las investigadoras. Irá incluida dentro del APK para verse sin datos.
-          </p>
-        </Tarjeta>
+        <Afiche {...aficheDe(semanaDe(s.dia), tipo)} />
       )}
 
       {(tipo === "respiracion" || tipo === "mindfulness") && (

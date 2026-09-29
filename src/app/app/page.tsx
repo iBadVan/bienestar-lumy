@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Boton, Pantalla, Tarjeta } from "@/components/ui";
 import { DIAS_TOTALES, EMOCIONES, INSIGNIAS, MODULOS } from "@/lib/config";
 import { cerrarSesion, haySupabase, pendientes, sincronizar } from "@/lib/datos";
+import { esApp, programarRecordatorios } from "@/lib/notificaciones";
 import { emocionDe, hecho, racha, semanaDe, tipoDia, useStore } from "@/lib/store";
 
 function Grafica({ valores }: { valores: number[] }) {
@@ -43,6 +44,10 @@ export default function Home() {
   useEffect(() => {
     if (listo && !s.perfil) router.replace("/");
   }, [listo, s.perfil, router]);
+
+  useEffect(() => {
+    void programarRecordatorios();
+  }, []);
 
   useEffect(() => {
     const leer = () => setPorEnviar(pendientes());
@@ -191,9 +196,14 @@ export default function Home() {
         Cerrar sesión
       </button>
 
-      <Link href="/panel" className="mb-4 block text-center text-xs text-lumy-tintaSuave underline underline-offset-4">
-        Ir al panel de administración
-      </Link>
+      {!esApp() && (
+        <Link
+          href="/panel"
+          className="mb-4 block text-center text-xs text-lumy-tintaSuave underline underline-offset-4"
+        >
+          Ir al panel de administración
+        </Link>
+      )}
     </Pantalla>
   );
 }

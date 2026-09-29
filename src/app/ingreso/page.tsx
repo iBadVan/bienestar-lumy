@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { Pantalla } from "@/components/ui";
+import { esApp } from "@/lib/notificaciones";
 
 function Opcion({ href, ico, texto }: { href: string; ico: string; texto: string }) {
   return (
@@ -22,7 +25,7 @@ export default function Ingreso() {
         <h1 className="mb-7 text-center font-display text-2xl font-bold">¿Cómo quieres ingresar?</h1>
         <div className="space-y-4">
           <Opcion href="/login" ico="🧑" texto="Soy estudiante" />
-          <Opcion href="/panel" ico="🛡️" texto="Soy administradora" />
+          {!esApp() && <Opcion href="/panel" ico="🛡️" texto="Soy administradora" />}
         </div>
         <Link
           href="/registro"
