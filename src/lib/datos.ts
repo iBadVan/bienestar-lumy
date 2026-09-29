@@ -17,6 +17,17 @@ const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export const haySupabase = Boolean(URL && ANON);
 
+/**
+ * A donde se piden las operaciones que necesitan servidor (el registro y el
+ * restablecimiento de contrasenas).
+ *
+ * En la web es el mismo sitio, asi que va vacio. Dentro del APK no hay
+ * servidor: las peticiones tienen que salir hacia el despliegue de Vercel.
+ */
+const BASE_API = process.env.NEXT_PUBLIC_API_BASE ?? "";
+
+export const urlApi = (ruta: string) => `${BASE_API}${ruta}`;
+
 let cliente: SupabaseClient | null = null;
 export function sb(): SupabaseClient | null {
   if (!haySupabase) return null;

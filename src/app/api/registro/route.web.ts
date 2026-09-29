@@ -14,6 +14,33 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+/**
+ * La peticion de registro puede venir de dos sitios: la web, donde el origen
+ * es el mismo, o el APK, donde el navegador interno de Android se identifica
+ * como localhost. Sin estas cabeceras el celular recibe un bloqueo del
+ * navegador y la app solo puede decir que no hay conexion, que es lo que
+ * confundia.
+ */
+const ORIGENES_APP = new Set([
+  "capacitor://localhost",
+  "https://localhost",
+  "http://localhost",
+]);
+
+function cabecerasCors(origen: string | null): Record<string, string> {
+  const permitido = origen && ORIGENES_APP.has(origen) ? origen : null;
+  if (!permitido) return {};
+  return {
+    "Access-Control-Allow-Origin": permitido,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
+}
+
+export async function OPTIONS(req: Request) {
+  return new Response(null, { status: 204, headers: cabecerasCors(req.headers.get("origin")) });
+}
+
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE = process.env.SUPABASE_SERVICE_KEY;
 
@@ -32,24 +59,25 @@ type Cuerpo = {
 };
 
 export async function POST(req: Request) {
+  const cors = cabecerasCors(req.headers.get("origin"));
   if (!URL || !SERVICE) {
-    return NextResponse.json({ error: "Servidor sin configurar." }, { status: 500 });
+    return NextResponse.json({ error: "Servidor sin configurar." }, { status: 500, headers: cors });
   }
 
   const b = (await req.json()) as Cuerpo;
   const codigo = (b.codigo ?? "").trim().toUpperCase();
 
   if (!/^LMY-[A-Z0-9]{5}$/.test(codigo)) {
-    return NextResponse.json({ error: "El código no tiene el formato correcto." }, { status: 400 });
+    return NextResponse.json({ error: "El código no tiene el formato correcto." }, { status: 400, headers: cors });
   }
   if (!b.clave || b.clave.length < 6) {
-    return NextResponse.json({ error: "La contraseña necesita al menos 6 caracteres." }, { status: 400 });
+    return NextResponse.json({ error: "La contraseña necesita al menos 6 caracteres." }, { status: 400, headers: cors });
   }
   if (!b.edad || b.edad < 12 || b.edad > 17) {
-    return NextResponse.json({ error: "La edad debe estar entre 12 y 17 años." }, { status: 400 });
+    return NextResponse.json({ error: "La edad debe estar entre 12 y 17 años." }, { status: 400, headers: cors });
   }
   if (!b.inicial || !b.apellidos || !b.sexo || !b.grado || !b.viveConAmbosPadres) {
-    return NextResponse.json({ error: "Faltan datos por completar." }, { status: 400 });
+    return NextResponse.json({ error: "Faltan datos por completar." }, { status: 400, headers: cors });
   }
 
   const admin = createClient(URL, SERVICE, {
@@ -85,7 +113,7 @@ export async function POST(req: Request) {
   });
 
   if (errCuenta || !cuenta.user) {
-    return NextResponse.json({ error: "No se pudo crear la cuenta." }, { status: 500 });
+    return NextResponse.json({ error: "No se pudo crear la cuenta." }, { status: 500, headers: cors });
   }
 
   // 3. Correlativo del estudio, por orden de registro
@@ -123,5 +151,5 @@ export async function POST(req: Request) {
     .update({ usado: true, usado_por: cuenta.user.id, usado_en: new Date().toISOString() })
     .eq("codigo", codigo);
 
-  return NextResponse.json({ ok: true, codigoEstudio: correlativo });
+  return NextResponse.json({ ok: true, codigoEstudio: correlativo }, { headers: cors });
 }

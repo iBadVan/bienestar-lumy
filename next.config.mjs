@@ -19,7 +19,12 @@ const nextConfig = {
     ? {
         output: "export",
         images: { unoptimized: true },
-        env: { NEXT_PUBLIC_ES_APP: "1" },
+        env: {
+          NEXT_PUBLIC_ES_APP: "1",
+          // Dentro del APK no hay servidor propio: el registro sale hacia aqui.
+          NEXT_PUBLIC_API_BASE:
+            process.env.NEXT_PUBLIC_API_BASE ?? "https://bienestar-lumy.vercel.app",
+        },
       }
     : {}),
 };

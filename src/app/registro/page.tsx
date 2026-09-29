@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Boton, Cabecera, Campo, Pantalla, inputCls } from "@/components/ui";
-import { haySupabase, iniciarSesion } from "@/lib/datos";
+import { haySupabase, iniciarSesion, urlApi } from "@/lib/datos";
 import { useStore } from "@/lib/store";
 
 const GRADOS = [
@@ -52,7 +52,7 @@ export default function Registro() {
 
     setEnviando(true);
     try {
-      const r = await fetch("/api/registro", {
+      const r = await fetch(urlApi("/api/registro"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -99,7 +99,10 @@ export default function Registro() {
       router.push("/app");
     } catch {
       setEnviando(false);
-      setErr("Necesitas conexión a internet para registrarte. Es solo esta vez.");
+      setErr(
+        "No pudimos conectar con el servidor. Revisa tu internet e intenta de nuevo. " +
+          "Solo hace falta para este paso.",
+      );
     }
   }
 

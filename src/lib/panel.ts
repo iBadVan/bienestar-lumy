@@ -1,7 +1,7 @@
 "use client";
 
 import { DIAS_TOTALES } from "./config";
-import { sb } from "./datos";
+import { sb, urlApi } from "./datos";
 
 /**
  * Consultas del panel. Todas pasan por las policies: si quien pregunta no
@@ -134,7 +134,7 @@ export async function restablecerClave(codigo: string) {
   const token = data.session?.access_token;
   if (!token) return { ok: false, error: "Vuelve a iniciar sesion." };
 
-  const r = await fetch("/api/restablecer", {
+  const r = await fetch(urlApi("/api/restablecer"), {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ codigo }),
