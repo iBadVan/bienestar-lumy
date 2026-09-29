@@ -21,7 +21,27 @@ const apartar = [
 
 function mover(de, a) {
   const origen = join(raiz, de);
-  if (existsSync(origen)) renameSync(origen, join(raiz, a));
+  if (!existsSync(origen)) return;
+
+  // En Windows, si el servidor de desarrollo esta corriendo, la carpeta queda
+  // bloqueada y el renombrado falla. Se reintenta unas veces antes de rendirse.
+  for (let intento = 1; intento <= 5; intento++) {
+    try {
+      renameSync(origen, join(raiz, a));
+      return;
+    } catch (e) {
+      if (e.code !== "EPERM" && e.code !== "EBUSY") throw e;
+      if (intento === 5) {
+        console.error("");
+        console.error("No se pudo apartar " + de + ".");
+        console.error("Casi siempre es porque 'npm run dev' esta corriendo en otra ventana.");
+        console.error("Cierra esa ventana (y VS Code si lo tienes abierto) y vuelve a intentar.");
+        console.error("");
+        throw e;
+      }
+      execSync("timeout /t 1 /nobreak > nul 2>&1 || sleep 1", { shell: true, stdio: "ignore" });
+    }
+  }
 }
 
 function devolverTodo() {
