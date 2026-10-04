@@ -9,3 +9,7 @@ npm-debug.log*
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# Videos de la intervencion: pesan demasiado para git.
+# Se guardan aparte y se copian a public/videos antes de construir el APK.
+public/videos/

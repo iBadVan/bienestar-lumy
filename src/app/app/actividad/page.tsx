@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Afiche } from "@/components/Afiche";
+import { Video } from "@/components/Video";
 import { Boton, Burbuja, Cabecera, Lumy, Pantalla, Tarjeta, inputCls } from "@/components/ui";
 import {
   AFIRMACIONES,
@@ -134,6 +135,7 @@ export default function Actividad() {
   const [fin, setFin] = useState<Cierre | null>(null);
   const [quizListo, setQuizListo] = useState(false);
   const [puntajeQuiz, setPuntajeQuiz] = useState<{ p: number; t: number } | null>(null);
+  const vistoRef = useRef<{ segundos: number; porcentaje: number } | null>(null);
 
   useEffect(() => {
     if (listo && !s.perfil) router.replace("/");
@@ -182,7 +184,12 @@ export default function Actividad() {
         });
       }
       const insignia = completarDia(e);
-      encolar("actividades_completadas", { dia: e.dia, modulo: tipo });
+      encolar("actividades_completadas", {
+        dia: e.dia,
+        modulo: tipo,
+        segundos_vistos: vistoRef.current?.segundos ?? null,
+        porcentaje_visto: vistoRef.current?.porcentaje ?? null,
+      });
       if (insignia) encolar("insignias_obtenidas", { insignia: insignia.nombre, obtenida_en: new Date().toISOString() });
       if (insignia && resultado.tipo === "dia") resultado = { tipo: "insignia", dato: insignia.nombre };
       return e;
@@ -270,21 +277,20 @@ export default function Actividad() {
 
       {(tipo === "respiracion" || tipo === "mindfulness") && (
         <>
-          <Tarjeta className="mb-4 bg-lumy-nube text-center">
-            <b className="block font-display">
-              {tipo === "respiracion" ? "Video guiado por Lumy" : "Audio de 5 minutos"}
-            </b>
-            <p className="mt-1 text-xs text-lumy-tintaSuave">
-              {tipo === "respiracion"
-                ? "Respiración diafragmática de 5 a 10 minutos. Pendiente de entrega."
-                : "Mindfulness guiado. Pendiente de entrega."}
-            </p>
-          </Tarjeta>
-          <div className="mb-3">
-            <Boton href="/app/respirar" variante="azul">
-              Practicar con el temporizador
-            </Boton>
-          </div>
+          <Video
+            archivo={tipo === "respiracion" ? "respiracion" : "mindfulness"}
+            titulo={tipo === "respiracion" ? "Respiración guiada" : "Atención plena"}
+            alTerminar={(segundos, porcentaje) => {
+              vistoRef.current = { segundos, porcentaje };
+            }}
+          />
+          {tipo === "respiracion" && (
+            <div className="mb-4">
+              <Boton href="/app/respirar" variante="blanco">
+                Practicar con el temporizador
+              </Boton>
+            </div>
+          )}
         </>
       )}
 
